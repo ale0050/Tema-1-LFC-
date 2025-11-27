@@ -18,13 +18,13 @@ void DeterministicFiniteAutomaton::setF(const set<int>& F) {
 
 
 bool DeterministicFiniteAutomaton:: verifyAutomaton() const {
-    // Starea inițială q0 aparține mulțimii Q
+    // Starea initiala q_0 apartine multimii Q
     if (Q_states.find(q0_initialState) == Q_states.end()) {
         cerr << "Eroare: Starea initiala nu apartine lui Q." << endl;
         return false;
     }
 
-    // Toate stările finale F se află în Q
+    // Toate stăarile finale F se afla in Q
     for (int state : F_finalStates) {
         if (Q_states.find(state) == Q_states.end()) {
             cerr << "Eroare: Cel putin o stare finala nu apartine lui Q." << endl;
@@ -32,7 +32,7 @@ bool DeterministicFiniteAutomaton:: verifyAutomaton() const {
         }
     }
 
-    //Funcția de tranziție conține doar simboluri din Σ și stări din Q.
+    //Functia de tranzitie contine doar simboluri din Σ si stari din Q.
 
     for (const auto& entry : delta_transition) {
         int currentState = entry.first.first;
@@ -54,7 +54,7 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
     os << "---------------------------------------" << endl;
     os << " AFD: M = (Q, Σ, δ, q0, F) " << endl;
 
-    // Afișarea componentelor formale
+    // Afisarea componentelor formale
     os << "Q (Stari): { ";
     for (int state : Q_states) os << state << " ";
     os << "}" << endl;
@@ -71,7 +71,7 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
 
     os << "---------------------------------------" << endl;
 
-    // ** AFIȘAREA TABELULUI DE TRANZIȚIE **
+    // ** AFISAREA TABELULUI DE TRANZITIE **
     os << "--- Tabelul de Tranzitie (δ) ---" << endl;
 
     // Capul de tabel (Simbolurile)
@@ -86,7 +86,7 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
     for (size_t i = 0; i < Sigma_alphabet.size(); ++i) os << "----";
     os << endl;
 
-    // Corpul tabelului (Tranzițiile)
+    // Corpul tabelului (Tranzitiile)
     for (int currentState : Q_states) {
         // Marcatori (-> pentru initiala, * pentru finala)
         if (currentState == q0_initialState) os << "->"; else os << "  ";
@@ -94,12 +94,12 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
 
         os << currentState << " | ";
 
-        // Căutarea tranzițiilor pentru fiecare simbol
+        // Cautarea tranzitiilor pentru fiecare simbol
         for (char symbol : Sigma_alphabet) {
             auto key = make_pair(currentState, symbol);
 
             if (delta_transition.count(key)) {
-                // Afișează starea următoare
+                // Afisează starea urmatoare
                 os << delta_transition.at(key) << " | ";
             }
             else {
@@ -115,16 +115,16 @@ bool DeterministicFiniteAutomaton:: checkWord(const string& word) const {
     int currentState = q0_initialState;
     for (char symbol : word) {
         auto key = make_pair(currentState, symbol);
-        // Verifică dacă există o tranziție pentru simbolul curent
+        // Verifica dacă exista o tranzitie pentru simbolul curent
         if (delta_transition.count(key)) {
             currentState = delta_transition.at(key);
         }
         else {
-            // Nu există tranziție pentru acest simbol
+            // Nu exista tranzitie pentru acest simbol
             return false;
         }
     }
-    // Verifică dacă starea finală este una dintre stările finale
+    // Verifics daca starea finala este una dintre starile finale
     return F_finalStates.count(currentState) > 0;
 }
 
