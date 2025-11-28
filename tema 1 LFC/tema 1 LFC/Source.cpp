@@ -241,10 +241,6 @@ int main() {
 
     string processed_regex = insertConcatenation(regex_r);
     string postfix_r = toPostfix(processed_regex);
-
-    cout << "DEBUG: Procesata (cu.): " << processed_regex << endl;
-    cout << "DEBUG: Postfixata: " << postfix_r << endl;
-    // Obt AFD
     
     //NondeterministicFiniteAutomaton NFA = regexToNFA_thompson(postfix_r);
     //cout << "\n--- AFN in Consola (Rezultat Thompson) ---" << endl;
@@ -277,8 +273,8 @@ int main() {
             break;
         case 2:
         {
-            string processed_regex = insertConcatenation(regex_r);
-            string postfix_r = toPostfix(processed_regex);
+            //string processed_regex = insertConcatenation(regex_r);
+            //string postfix_r = toPostfix(processed_regex);
             Node* root = buildSyntaxTree(postfix_r);
             setConsoleColor(COLOR_RED | COLOR_BOLD);
             cout << "\n--- Arbore Sintactic ---" << endl;
