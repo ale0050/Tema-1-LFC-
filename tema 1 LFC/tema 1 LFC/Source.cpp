@@ -1,7 +1,10 @@
 ﻿#include "DeterministicFiniteAutomaton.h"
-#include <windows.h>
+#include "NondeterministicFiniteAutomaton.h"
 #include <iostream>
 #include <stack>
+#include <windows.h>
+
+
 // Obține un handle pentru ieșirea standard
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -26,21 +29,98 @@ struct Node { // --> pt syntax tree idk daca e bun
     }
 };
 
+bool isOperand(char c)
+{
+    return isalnum((unsigned char)c);
+}
 
+bool isUnaryOperator(char c)
+{
+    return c == '*' || c == '+' || c == '?';
+
+}
+
+string insertConcatenation(const string& regex)
+{
+    string processedRegex = "";
+    for (size_t i = 0; i < regex.length(); ++i)
+    {
+        char currentChar = regex[i];
+        processedRegex += currentChar;
+
+        if (i + 1 < regex.length())
+        {
+            char nextChar = regex[i + 1];
+            bool leftRequired = isOperand(currentChar) || currentChar == ')' || isUnaryOperator(currentChar);
+            bool rightRequired = isOperand(nextChar) || nextChar == '(';
+            if (leftRequired && rightRequired)
+                processedRegex += '.';
+        }
+    }
+    return processedRegex;
+}
 
 void setConsoleColor(int color) {
     SetConsoleTextAttribute(hConsole, color);
 }
+
+
 int priority(char op) { // e buna 
-    switch (op) {
+    switch (op) 
+    {
     case '*': case '+': case '?': return 3; // cele mai imp
     case '.': return 2;                    
     case '|': return 1;                   
     default: return 0;
     }
 }
-DeterministicFiniteAutomaton RegexToDFA(const string& regex) {
-    ;
+
+
+
+NondeterministicFiniteAutomaton regexToNFA_thompson(const string& postfix) {
+    stack<NondeterministicFiniteAutomaton> nfaStack;
+
+    for (char c : postfix) {
+        if (isalnum((unsigned char)c)) 
+            nfaStack.push(NondeterministicFiniteAutomaton::createBasicNFA(c));
+        else if (c == '.') 
+        {
+            
+            NondeterministicFiniteAutomaton NFA2 = nfaStack.top(); nfaStack.pop();
+            NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
+
+            nfaStack.push(NFA1.combineConcatenation(NFA2));
+        }
+        else if (c == '|') {
+            // Cazul Uniune: A|B
+            NondeterministicFiniteAutomaton NFA2 = nfaStack.top(); nfaStack.pop();
+            NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
+
+            nfaStack.push(NFA1.combineUnion(NFA2));
+        }
+        else if (c == '*') {
+            // Cazul Kleene Star: A*
+            NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
+            nfaStack.push(NFA1.combineKleeneStar());
+        }
+        else if (c == '+') {
+            // Cazul Plus (una sau mai multe): A+
+            NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
+            nfaStack.push(NFA1.combinePlus());
+        }
+        else if (c == '?') {
+            // Cazul Optional: A?
+            NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
+            nfaStack.push(NFA1.combineOptional());
+        }
+      
+    }
+
+    if (nfaStack.empty()) {
+        throw std::runtime_error("Expresie regulata invalida sau goala.");
+    }
+
+    return nfaStack.top(); // NFA-ul final
 }
 
 
@@ -51,9 +131,9 @@ string toPostfix(const string& regex) { // e verificata si e buna
 
         for (char c : regex) {
            // verif daca e nr sau litera
-            if (isalnum((unsigned char)c)) {
+            if (isOperand(c)) 
                 out += c;
-            }
+      
             // ( - punem pe stivă
             else if (c == '(') {
                 operators.push(c);
@@ -85,6 +165,17 @@ string toPostfix(const string& regex) { // e verificata si e buna
 
         return out;
     }
+
+DeterministicFiniteAutomaton RegexToDFA(const string& regex)
+{
+    string processed_regex = insertConcatenation(regex);
+
+    string postfix_r = toPostfix(processed_regex);
+
+    NondeterministicFiniteAutomaton NFA = regexToNFA_thompson(postfix_r);
+
+    return NFA.convertToDFA();
+}
 
 Node* buildSyntaxTree(const string& postfix) { // -> we don t know this
     stack<Node*> st;
@@ -148,7 +239,18 @@ int main() {
     }
     cout << "---------------------------------------" << endl;
 
+    string processed_regex = insertConcatenation(regex_r);
+    string postfix_r = toPostfix(processed_regex);
+
+    cout << "DEBUG: Procesata (cu.): " << processed_regex << endl;
+    cout << "DEBUG: Postfixata: " << postfix_r << endl;
     // Obt AFD
+    
+    //NondeterministicFiniteAutomaton NFA = regexToNFA_thompson(postfix_r);
+    //cout << "\n--- AFN in Consola (Rezultat Thompson) ---" << endl;
+    //NFA.printNFA(cout);
+    //DeterministicFiniteAutomaton AFD = NFA.convertToDFA();
+   
     DeterministicFiniteAutomaton AFD = RegexToDFA(regex_r);
    
     if (!AFD.verifyAutomaton()) {
@@ -171,11 +273,26 @@ int main() {
 
         switch (choice) {
         case 1:
-            cout << "\nForma poloneza postfixata: " << toPostfix(regex_r) << endl;
+            cout << "\nForma poloneza postfixata: " << toPostfix(processed_regex) << endl;
             break;
         case 2:
-           /* printSyntaxTree(regex_r,0);*/
+        {
+            string processed_regex = insertConcatenation(regex_r);
+            string postfix_r = toPostfix(processed_regex);
+            Node* root = buildSyntaxTree(postfix_r);
+            setConsoleColor(COLOR_RED | COLOR_BOLD);
+            cout << "\n--- Arbore Sintactic ---" << endl;
+
+            if (root) {
+                printSyntaxTree(root);
+            }
+            else {
+                cout << "Nu s-a putut construi arborele sintactic." << endl;
+            }
+
+            setConsoleColor(COLOR_BLUE | COLOR_BOLD);
             break;
+        }
         case 3: {
             cout << "\n--- AFD in Consola ---" << endl;
             AFD.printAutomaton(cout);

@@ -124,10 +124,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DeterministicFiniteAutomaton.cpp" />
+    <ClCompile Include="NondeterministicFiniteAutomaton.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeterministicFiniteAutomaton.h" />
+    <ClInclude Include="NondeterministicFiniteAutomaton.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="out.txt" />

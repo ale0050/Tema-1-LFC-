@@ -21,17 +21,23 @@
     <ClCompile Include="DeterministicFiniteAutomaton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NondeterministicFiniteAutomaton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeterministicFiniteAutomaton.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NondeterministicFiniteAutomaton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="regexInput.txt">
+    <Text Include="out.txt">
       <Filter>Source Files</Filter>
     </Text>
-    <Text Include="out.txt">
+    <Text Include="regexInput.txt">
       <Filter>Source Files</Filter>
     </Text>
   </ItemGroup>
