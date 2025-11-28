@@ -13,11 +13,11 @@ using namespace std;
 class DeterministicFiniteAutomaton
 {
 private:
-    set<int> Q_states;                           // Q - Mulțimea stărilor
+    set<int> Q_states;                           // Q - Multimea starilor
     set<char> Sigma_alphabet;                    // Sigma - Alfabetul de intrare
-    map<pair<int, char>, int> delta_transition;  // delta - Funcția de tranziție (stare, simbol) -> stare nouă
-    int q0_initialState;                         // q0 - Starea inițială
-    set<int> F_finalStates;                      // F - Mulțimea stărilor finale
+    map<pair<int, char>, int> delta_transition;  // delta - Funcția de tranziție (stare, simbol) -> stare noua
+    int q0_initialState;                         // q0 - Starea initiala
+    set<int> F_finalStates;                      // F - Multimea starilor finale
 
 public: 
     // setteri

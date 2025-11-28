@@ -42,7 +42,7 @@ bool DeterministicFiniteAutomaton:: verifyAutomaton() const {
         if (Q_states.find(currentState) == Q_states.end() ||
             Q_states.find(nextState) == Q_states.end() ||
             Sigma_alphabet.find(symbol) == Sigma_alphabet.end()) {
-            cerr << "Eroare: Tranzitie invalida gasita." << endl;
+            cerr << "Eroare: Tranzitie invalida" << endl;
             return false;
         }
     }
@@ -54,7 +54,7 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
     os << "---------------------------------------" << endl;
     os << " AFD: M = (Q, Σ, δ, q0, F) " << endl;
 
-    // Afisarea componentelor formale
+    // Afis componentelor formale
     os << "Q (Stari): { ";
     for (int state : Q_states) os << state << " ";
     os << "}" << endl;
@@ -71,10 +71,10 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
 
     os << "---------------------------------------" << endl;
 
-    // ** AFISAREA TABELULUI DE TRANZITIE **
+    //  AFIS TABEL DE TRANZITIE
     os << "--- Tabelul de Tranzitie (δ) ---" << endl;
 
-    // Capul de tabel (Simbolurile)
+    // Simboluri
     os << "Stare\\Simbol | ";
     for (char symbol : Sigma_alphabet) {
         os << symbol << " | ";
@@ -86,20 +86,20 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
     for (size_t i = 0; i < Sigma_alphabet.size(); ++i) os << "----";
     os << endl;
 
-    // Corpul tabelului (Tranzitiile)
+    //Tranzitii
     for (int currentState : Q_states) {
-        // Marcatori (-> pentru initiala, * pentru finala)
+        // -> pentru initiala    * pentru finala
         if (currentState == q0_initialState) os << "->"; else os << "  ";
         if (F_finalStates.count(currentState)) os << "*"; else os << " ";
 
         os << currentState << " | ";
 
-        // Cautarea tranzitiilor pentru fiecare simbol
+        // Cautare tranzitii pt fiecare simbol
         for (char symbol : Sigma_alphabet) {
             auto key = make_pair(currentState, symbol);
 
             if (delta_transition.count(key)) {
-                // Afisează starea urmatoare
+                // Afis st urm
                 os << delta_transition.at(key) << " | ";
             }
             else {
