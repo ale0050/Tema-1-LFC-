@@ -1,1 +1,1 @@
-(a|b)*c(a+b)?d
+abba(aa|bb)*c(ab)*

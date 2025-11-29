@@ -18,9 +18,9 @@ private:
 	int q0_initialState;                           
 	set<int> F_finalStates;
 
+public: 
 	static int next_state_index;
 
-public: 
 	NondeterministicFiniteAutomaton();
 
 	void setQ(const set<int>& Q);
@@ -29,6 +29,7 @@ public:
 	void setQ0(int q0);
 	void setF(const set<int>& F);
 
+	set<int> getQ() const;
 	set<char> getSigma() const;
 	int getQ0() const;
 	const map<pair<int, char>, set<int>>& getDelta() const;

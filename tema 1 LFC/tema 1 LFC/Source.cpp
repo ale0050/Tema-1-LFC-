@@ -204,12 +204,12 @@ void printSyntaxTree(Node* root, string indent = "", bool last = true) { // we d
 
     cout << indent;
     if (last) {
-        cout << "└──";
+        cout << "+--";
         indent += "   ";
     }
     else {
-        cout << "├──";
-        indent += "│  ";
+        cout << "|--";
+        indent += "|  ";
     }
 
     cout << root->value << "\n";
@@ -223,10 +223,11 @@ void printSyntaxTree(Node* root, string indent = "", bool last = true) { // we d
 
 
 int main() {
- 
+
     //citire expresie din fisier
     ifstream inFile("regexInput.txt");
     string regex_r;
+ 
 
     if (inFile.is_open()) {
         getline(inFile, regex_r);
