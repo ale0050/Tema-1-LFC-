@@ -49,7 +49,6 @@ public:
 	NondeterministicFiniteAutomaton combineConcatenation(const NondeterministicFiniteAutomaton& other) const; // Operator '.'
 	NondeterministicFiniteAutomaton combineKleeneStar() const;                                           // Operator '*'
 	NondeterministicFiniteAutomaton combinePlus() const;                                                 // Operator '+'
-	NondeterministicFiniteAutomaton combineOptional() const;
 
 	void printNFA(ostream& os) const;
 	DeterministicFiniteAutomaton convertToDFA() const;
