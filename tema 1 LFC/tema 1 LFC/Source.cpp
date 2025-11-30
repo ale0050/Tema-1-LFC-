@@ -8,10 +8,8 @@
 
 using namespace std;
 
-// Handle pentru consola
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-// Culori Windows
 #define COLOR_DEFAULT 7  
 #define COLOR_BLUE 9
 #define COLOR_GREEN 10
@@ -19,8 +17,9 @@ HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #define COLOR_RED 12
 #define COLOR_CYAN 11
 #define COLOR_BOLD 8
+#define COLOR_PINK 13
 
-// Nod arbore sintactic
+//nod arbore sintactic
 struct Node {
     char value;
     Node* left;
@@ -30,43 +29,46 @@ struct Node {
     }
 };
 
-// --- Functii utile ---
 bool isOperand(char c) { return isalnum((unsigned char)c); }
-bool isUnaryOperator(char c) { return c == '*' || c == '+' || c == '?'; }
+bool isUnaryOperator(char c) { return c == '*' || c == '+'; }
 
-// Inserare concatenare explicita
-string insertConcatenation(const string& regex) {
+
+//inserare concatenare explicita -> adaug . 
+string insertConcatenation(const string& regex) 
+{
     string processed = "";
     for (size_t i = 0; i < regex.length(); ++i) {
         char curr = regex[i];
         processed += curr;
-        if (i + 1 < regex.length()) {
+        if (i + 1 < regex.length()) 
+        {
             char next = regex[i + 1];
             bool left = isOperand(curr) || curr == ')' || isUnaryOperator(curr);
             bool right = isOperand(next) || next == '(';
-            if (left && right) processed += '.';
+            if (left && right) 
+                processed += '.';
         }
     }
     return processed;
 }
 
-// Setare culoare consola
-void setConsoleColor(int color) {
+void setConsoleColor(int color) 
+{
     SetConsoleTextAttribute(hConsole, color);
 }
 
-// Prioritate operatori
-int priority(char op) {
+int priority(char op) 
+{
     switch (op) {
-    case '*': case '+': case '?': return 3;
+    case '*': case '+': return 3;
     case '.': return 2;
     case '|': return 1;
     default: return 0;
     }
 }
 
-// --- Transformare regex in NFA folosind Thompson ---
-NondeterministicFiniteAutomaton regexToNFA_thompson(const string& postfix) {
+NondeterministicFiniteAutomaton regexToNFA_thompson(const string& postfix)
+{
     stack<NondeterministicFiniteAutomaton> nfaStack;
     for (char c : postfix) {
         if (isalnum((unsigned char)c))
@@ -89,10 +91,6 @@ NondeterministicFiniteAutomaton regexToNFA_thompson(const string& postfix) {
             NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
             nfaStack.push(NFA1.combinePlus());
         }
-        else if (c == '?') {
-            NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
-            nfaStack.push(NFA1.combineOptional());
-        }
     }
 
     if (nfaStack.empty())
@@ -101,19 +99,25 @@ NondeterministicFiniteAutomaton regexToNFA_thompson(const string& postfix) {
     return nfaStack.top();
 }
 
-// --- Transformare regex in postfix ---
-string toPostfix(const string& regex) {
+//regex in postfix
+string toPostfix(const string& regex) 
+{
     stack<char> operators;
     string out;
     for (char c : regex) {
-        if (isOperand(c)) out += c;
-        else if (c == '(') operators.push(c);
-        else if (c == ')') {
-            while (!operators.empty() && operators.top() != '(') {
+        if (isOperand(c)) 
+            out += c;
+        else if (c == '(') 
+            operators.push(c);
+        else if (c == ')') 
+        {
+            while (!operators.empty() && operators.top() != '(') 
+            {
                 out += operators.top();
                 operators.pop();
             }
-            if (!operators.empty()) operators.pop();
+            if (!operators.empty()) 
+                operators.pop();
         }
         else {
             while (!operators.empty() && priority(operators.top()) >= priority(c)) {
@@ -130,7 +134,6 @@ string toPostfix(const string& regex) {
     return out;
 }
 
-// --- Transformare regex in DFA ---
 DeterministicFiniteAutomaton RegexToDFA(const string& regex) {
     string processed_regex = insertConcatenation(regex);
     string postfix_r = toPostfix(processed_regex);
@@ -138,7 +141,6 @@ DeterministicFiniteAutomaton RegexToDFA(const string& regex) {
     return NFA.convertToDFA();
 }
 
-// --- Construire arbore sintactic ---
 Node* buildSyntaxTree(const string& postfix) {
     stack<Node*> st;
     for (char c : postfix) {
@@ -156,21 +158,22 @@ Node* buildSyntaxTree(const string& postfix) {
     return st.empty() ? nullptr : st.top();
 }
 
-// --- Afisare arbore sintactic vizual corect ---
 void printSyntaxTree(Node* root, string indent = "", bool last = true) {
-    if (!root) return;
+    if (!root)
+        return;
 
     cout << indent;
     if (last) {
-        cout << "+--";
+        cout << "-- ";
         indent += "   ";
     }
     else {
-        cout << "|--";
+        cout << "|-- ";
         indent += "|  ";
     }
-
+    setConsoleColor(COLOR_PINK | COLOR_BOLD);
     cout << root->value << "\n";
+    setConsoleColor(COLOR_DEFAULT | COLOR_BOLD);
 
     if (root->left || root->right) {
         printSyntaxTree(root->left, indent, root->right == nullptr);
@@ -178,8 +181,8 @@ void printSyntaxTree(Node* root, string indent = "", bool last = true) {
     }
 }
 
-// --- Main ---
-int main() {
+int main()
+{
     string regex_r;
     ifstream inFile("regexInput.txt");
     if (inFile.is_open()) {
@@ -206,28 +209,32 @@ int main() {
 
     int choice;
     string word_to_check;
-    setConsoleColor(COLOR_BLUE | COLOR_BOLD);
+    setConsoleColor(COLOR_CYAN | COLOR_BOLD);
     do {
         cout << "\n--- MENIU AFD ---" << endl;
-        cout << "1. Afisare forma poloneza postfixata (NPI)" << endl;
+        cout << "1. Afisare forma poloneza postfixata " << endl;
         cout << "2. Afisare arbore sintactic" << endl;
         cout << "3. Afisare automat in consola si fisier" << endl;
         cout << "4. Verificare cuvant in automat " << endl;
         cout << "0. Iesire" << endl;
         cout << "Alegeti o optiune: ";
         cin >> choice;
+        setConsoleColor(COLOR_DEFAULT | COLOR_BOLD);
 
         switch (choice) {
-        case 1:
-            cout << "\nForma poloneza postfixata: " << postfix_r << endl;
+        case 1: {
+            cout << "\nForma poloneza postfixata: ";
+            setConsoleColor(COLOR_YELLOW | COLOR_BOLD);
+            cout << postfix_r << endl;
             break;
+        }
         case 2: {
             Node* root = buildSyntaxTree(postfix_r);
-            setConsoleColor(COLOR_RED | COLOR_BOLD);
+            setConsoleColor(COLOR_DEFAULT | COLOR_BOLD);
             cout << "\n--- Arbore Sintactic ---" << endl;
             if (root) printSyntaxTree(root);
             else cout << "Nu s-a putut construi arborele sintactic." << endl;
-            setConsoleColor(COLOR_BLUE | COLOR_BOLD);
+            setConsoleColor(COLOR_CYAN | COLOR_BOLD);
             break;
         }
         case 3: {
@@ -248,17 +255,30 @@ int main() {
             cout << "Introduceti cuvantul de verificat: ";
             cin >> word_to_check;
             if (AFD.checkWord(word_to_check))
-                cout << "REZULTAT: Cuvantul este ACCEPTAT de AFD." << endl;
+            {
+                cout << "REZULTAT: Cuvantul este";
+                setConsoleColor(COLOR_GREEN | COLOR_BOLD);
+                cout << " ACCEPTAT ";
+                setConsoleColor(COLOR_DEFAULT | COLOR_BOLD);
+                cout << "de AFD." << endl;
+            }
             else
-                cout << "REZULTAT: Cuvantul este RESPINS de AFD." << endl;
-            break;
+            {
+                cout << "REZULTAT: Cuvantul este";
+                setConsoleColor(COLOR_RED | COLOR_BOLD);
+                cout << " RESPINS ";
+                setConsoleColor(COLOR_DEFAULT | COLOR_BOLD);
+                cout << "de AFD." << endl;
+                break;
+            }
         case 0:
-            cout << "Program incheiat." << endl;
+            cout << "Program incheiat" << endl;
             break;
         default:
-            cout << "Optiune invalida. Reincercati." << endl;
-        }
-    } while (choice != 0);
+            cout << "Optiune invalida. Reincercati" << endl;
+            }
+            setConsoleColor(COLOR_CYAN | COLOR_BOLD);
+        } while (choice != 0);
 
-    return 0;
-}
+        return 0;
+    }

@@ -11,7 +11,7 @@ NondeterministicFiniteAutomaton::NondeterministicFiniteAutomaton()
     Q_states.clear();
     Sigma_alphabet.clear();
     delta_transition.clear();
-    q0_initialState = -1; // -1 indica o stare neinitializata
+    q0_initialState = -1; 
     F_finalStates.clear();
 }
 
@@ -58,13 +58,11 @@ void NondeterministicFiniteAutomaton::addState(int state) {
 }
 
 void NondeterministicFiniteAutomaton::setInitialState(int state) {
-    // Starea initiala trebuie sa fie inclusa si in multimea Q
     Q_states.insert(state);
     q0_initialState = state;
 }
 
 void NondeterministicFiniteAutomaton::addFinalState(int state) {
-    // Starea finala trebuie sa fie inclusa si in multimea Q
     Q_states.insert(state);
     F_finalStates.insert(state);
 }
@@ -75,20 +73,16 @@ void NondeterministicFiniteAutomaton::addSymbol(char symbol) {
 }
 
 void NondeterministicFiniteAutomaton::addTransition(int from, char symbol, int to) {
-    // adaugam starule in Q
     addState(from);
     addState(to);
 
-    //adaugam simbolul la alfabet doar daca nu e lambda
     if (symbol != lambda)
         addSymbol(symbol);
 
-    // Adaugă tranziția în harta delta
     delta_transition[{from, symbol}].insert(to);
 }
 
 
-//alocam index nou pt fiecare stare noua 
 static int allocateStateIndex() {
     return NondeterministicFiniteAutomaton::next_state_index++;
 }
@@ -107,14 +101,14 @@ static map<int, int> mergeWithOffset(NondeterministicFiniteAutomaton& result, co
         for (int to : entry.second) allStates.insert(to);
     }
 
-    //Alocăm indecși noi pentru fiecare stare din other
+	//alocam inexi noi pt fiecare stare veche si le adaugam in result
     for (int oldState : allStates) {
         int newState = allocateStateIndex();
         mapping[oldState] = newState;
         result.addState(newState);
     }
 
-    //Copiem tranzițiile cu reindexare
+	//copiem tranzitiile cu noile indici
     for (const auto& entry : other.getDelta()) {
         int oldFrom = entry.first.first;
         char symbol = entry.first.second;
@@ -124,7 +118,7 @@ static map<int, int> mergeWithOffset(NondeterministicFiniteAutomaton& result, co
             result.addTransition(newFrom, symbol, newTo);
         }
     }
-    //Copiem alfabetul (fără lambda)
+	//copiem alfabetul fara lambda
     for (char s : other.getSigma()) result.addSymbol(s);
 
     return mapping;
@@ -226,7 +220,6 @@ NondeterministicFiniteAutomaton NondeterministicFiniteAutomaton::combinePlus() c
     result.setInitialState(iC);
     result.addFinalState(fC);
 
-    // 3 lambda (fara iC -> fC)
     result.addTransition(iC, lambda, iA);
     result.addTransition(fA, lambda, fC);
     result.addTransition(fA, lambda, iA);
@@ -234,51 +227,17 @@ NondeterministicFiniteAutomaton NondeterministicFiniteAutomaton::combinePlus() c
     return result;
 }
 
-NondeterministicFiniteAutomaton NondeterministicFiniteAutomaton::combineOptional() const { // op ?
-    //verif daca nfa curent e valid
-    if (this->q0_initialState == -1 || this->F_finalStates.empty())
-        throw std::runtime_error("NFA must be initialized for Optional operation.");
-
-    NondeterministicFiniteAutomaton result = *this;
-
-    //retine starea f si i ale nfa ului
-    int iA = this->q0_initialState;
-    int fA = *this->F_finalStates.begin();
-
-    //cream stari f si i noi
-    int iC = allocateStateIndex();
-    int fC = allocateStateIndex();
-
-    result.addState(iC);
-    result.addState(fC);
-
-    //setam starile f si i pt nfa ul final
-    result.F_finalStates.clear();
-    result.setInitialState(iC);
-    result.addFinalState(fC);
-
-    // lambda: iC -> iA, fA -> fC, iC -> fC
-    result.addTransition(iC, lambda, iA);
-    result.addTransition(fA, lambda, fC);
-    result.addTransition(iC, lambda, fC);
-
-    return result;
-}
-
 NondeterministicFiniteAutomaton NondeterministicFiniteAutomaton::combineUnion(const NondeterministicFiniteAutomaton& other) const { //op |
-    //ambele trebuie sa aiba fix o stare fianla
     if (this->F_finalStates.size() != 1 || other.F_finalStates.size() != 1)
         throw std::runtime_error("Both NFAs must have exactly one final state for union.");
 
     NondeterministicFiniteAutomaton result;
 
-    //alocam si setam doua stari noi
     int newInitial = allocateStateIndex();
     int newFinal = allocateStateIndex();
     result.setInitialState(newInitial);
     result.addFinalState(newFinal);
 
-    //copie nfa ul curent si urmat in  result
     map<int, int> mappingA = mergeWithOffset(result, *this);
     map<int, int> mappingB = mergeWithOffset(result, other);
 
@@ -302,10 +261,9 @@ NondeterministicFiniteAutomaton NondeterministicFiniteAutomaton::combineUnion(co
 
 
 set<int> NondeterministicFiniteAutomaton::lambdaClosure(const set<int>& states) const {
-    set<int> closure = states; // Setul de rezultat incepe cu starile de intrare
-    stack<int> s;              // Structura auxiliara (stiva) pentru DFS
+    set<int> closure = states; 
+    stack<int> s;              
 
-    // Incarcam toate starile initiale in stiva
     for (int state : states)
         s.push(state);
 
@@ -313,21 +271,15 @@ set<int> NondeterministicFiniteAutomaton::lambdaClosure(const set<int>& states) 
         int currentState = s.top();
         s.pop();
 
-        // Cautam tranzitiile din currentState pe simbolul lambda
-        // Accesam delta_transition direct cu cheia {currentState, lambda}
+		//caut tranz curente pe lambda
         auto key = make_pair(currentState, lambda);
 
-        // Verificam daca exista tranzitii pentru lambda
-        if (delta_transition.count(key)) {
-            // Parcurgem toate starile urmatoare (set<int>)
-            for (int nextState : delta_transition.at(key)) {
-
-                // Daca nextState nu a fost vizitata (nu e in setul closure)
+        if (delta_transition.count(key))
+            //parcurg toate starile urmatoare
+            for (int nextState : delta_transition.at(key)) 
                 if (closure.find(nextState) == closure.end()) {
-                    closure.insert(nextState); // Adaugam la multimea de rezultat
-                    s.push(nextState);         // Adaugam in stiva pentru procesare ulterioara
-                }
-            }
+                    closure.insert(nextState);
+                    s.push(nextState);        
         }
     }
 
@@ -335,25 +287,19 @@ set<int> NondeterministicFiniteAutomaton::lambdaClosure(const set<int>& states) 
 }
 
 set<int> NondeterministicFiniteAutomaton::move(const set<int>& states, char symbol) const {
-    set<int> reachableStates; // Mulțimea de stări atinse
+	//calculam starile accesibile dintr-o multime de stari pe un simbol dat
+    set<int> reachableStates;
 
-    // Nu ar trebui să se încerce move pe simbolul LAMBDA
     if (symbol == lambda)
         return reachableStates;
 
-    // Parcurgem toate stările din mulțimea de intrare
-    for (int currentState : states) {
-        // Căutăm tranzițiile din currentState pe simbolul de intrare
+    for (int currentState : states) 
+    {
         auto key = make_pair(currentState, symbol);
-
-        // Verificăm dacă există tranziții pentru simbolul dat
         if (delta_transition.count(key)) 
-            // Dacă există, adăugăm toate stările următoare la mulțimea de rezultat
             for (int nextState : delta_transition.at(key))
-                reachableStates.insert(nextState);
-         
+                reachableStates.insert(nextState);       
     }
-
     return reachableStates;
 }
 
@@ -370,19 +316,18 @@ DeterministicFiniteAutomaton NondeterministicFiniteAutomaton::convertToDFA() con
     set<int> dfa_q_states;
     map<pair<int, char>, int> dfa_delta;
     set<int> dfa_f_states;
-    int dfa_next_state_index = 0; // Contorul pentru stările DFA (0, 1, 2, ...)
+    int dfa_next_state_index = 0; 
 
-    // Starea inițială a DFA: q0' = lambdaClosure({q0_AFN})
     set<int> q0_nfa_set = { q0_initialState };
     set<int> q0_dfa_set = lambdaClosure(q0_nfa_set);
 
-    // Adaugă starea inițială la mulțimile AFD
+	// aduagam starea initiala in AFD
     dfa_states_map[q0_dfa_set] = dfa_next_state_index;
     dfa_q_states.insert(dfa_next_state_index);
     DFA.setQ0(dfa_next_state_index);
     dfa_next_state_index++;
 
-    // Stări de procesat (cele pentru care nu s-au calculat încă toate tranzițiile)
+	//stari de procesat
     queue<set<int>> states_to_process;
     states_to_process.push(q0_dfa_set);
 
@@ -394,38 +339,29 @@ DeterministicFiniteAutomaton NondeterministicFiniteAutomaton::convertToDFA() con
 
         int current_dfa_state = dfa_states_map.at(current_nfa_set);
 
-        // verificam starea finala
-        // Dacă mulțimea AFN (current_nfa_set) conține orice stare finală AFN, 
-        // atunci starea AFD curentă (current_dfa_state) este finală. 
-        for (int nfa_final_state : F_finalStates) {
-            if (current_nfa_set.count(nfa_final_state)) {
+		//stările finale dfa sunt toate comb de stari nfa care includ cel putin o stare finala nfa
+        for (int nfa_final_state : F_finalStates)
+            if (current_nfa_set.count(nfa_final_state)) 
+            {
                 dfa_f_states.insert(current_dfa_state);
                 break;
             }
-        }
 
-       //calculam tranzitiile pt fiecare elem din alfabet
+       //calculam tranz pt fiecare elem din alfabet
         for (char symbol : Sigma_alphabet) 
         {
-
-            // Mutare: move(T, a)
             set<int> target_nfa_set_after_move = move(current_nfa_set, symbol);
-
-            // Închidere: lambdaClosure(move(T, a))
             set<int> target_dfa_set = lambdaClosure(target_nfa_set_after_move);
 
-            // daca avem mult vida ignoram tranzitia
             if (target_dfa_set.empty())
                 continue;
 
             int target_dfa_state;
 
-            // Verifică dacă noua stare AFD (target_dfa_set) a fost deja descoperită
+			//verif daca noua sare a fota deja descoperita
             if (dfa_states_map.count(target_dfa_set))
-                // Stare existentă
                 target_dfa_state = dfa_states_map.at(target_dfa_set);
             else {
-                // Stare nouă (Descoperită)
                 target_dfa_state = dfa_next_state_index;
                 dfa_states_map[target_dfa_set] = target_dfa_state;
                 dfa_q_states.insert(target_dfa_state);
@@ -433,12 +369,10 @@ DeterministicFiniteAutomaton NondeterministicFiniteAutomaton::convertToDFA() con
                 dfa_next_state_index++;
             }
 
-            //Adaugă tranziția la AFD
             dfa_delta[{current_dfa_state, symbol}] = target_dfa_state;
         }
     }
 
-    //setam comp afd finale
     DFA.setQ(dfa_q_states);
     DFA.setSigma(Sigma_alphabet);
     DFA.setDelta(dfa_delta);
@@ -448,9 +382,9 @@ DeterministicFiniteAutomaton NondeterministicFiniteAutomaton::convertToDFA() con
 }
 
 void NondeterministicFiniteAutomaton::printNFA(ostream& os) const {
-    // Helper local: convertește set<int> în string "{1,2,3}"
     auto setToString = [](const set<int>& s) -> string {
-        if (s.empty()) return "{}";
+        if (s.empty()) 
+            return "{}";
         string out = "{";
         bool first = true;
         for (int st : s) {
@@ -463,67 +397,63 @@ void NondeterministicFiniteAutomaton::printNFA(ostream& os) const {
         };
 
     os << "=======================================" << endl;
-    os << " AFN: M_lambda = (Q, \u03A3, \u03B4, q0, F) " << endl;
+    os << " AFN: M_lambda = (Q, sigma, delta, q0, F) " << endl;
 
-    // 1. Afișare componente formale
     os << "Q (Stari): { ";
-    for (int state : Q_states) os << state << " ";
+    for (int state : Q_states) 
+        os << state << " ";
     os << "}" << endl;
 
-    os << "\u03A3 (Alfabet): { ";
-    for (char symbol : Sigma_alphabet) os << symbol << " ";
+    os << "sigma (Alfabet): { ";
+    for (char symbol : Sigma_alphabet)
+        os << symbol << " ";
     os << "}" << endl;
 
     os << "q0 (Stare initiala): " << q0_initialState << endl;
 
     os << "F (Stari finale): { ";
-    for (int state : F_finalStates) os << state << " ";
+    for (int state : F_finalStates) 
+        os << state << " ";
     os << "}" << endl;
 
     os << "---------------------------------------" << endl;
 
-    // 2. Afisare Tabel de Tranzitie (incluzând λ)
-    os << "--- Tabelul de Tranzitie (\u03B4) ---" << endl;
+    os << "--- Tabelul de Tranzitie ---" << endl;
 
-    // Header: Simboluri: Alfabet + LAMBDA
-    os << "Stare\\Simbol | " << "\u03BB (LAMBDA)" << " | ";
+    os << "Stare\\Simbol | " << "lambda" << " | ";
     for (char symbol : Sigma_alphabet) {
         os << symbol << " | ";
     }
     os << endl;
-
-    // Linie separatoare (doar estetic)
-    os << "--------------";
-    for (size_t i = 0; i < Sigma_alphabet.size() + 1; ++i) os << "----";
+    for (size_t i = 0; i < Sigma_alphabet.size() + 1; ++i) 
+        os << "----";
     os << endl;
 
-    // Tranziții
-    for (int currentState : Q_states) {
-        // Marcaje: -> pentru initiala, * pentru finala
-        if (currentState == q0_initialState) os << "->"; else os << "  ";
-        if (F_finalStates.count(currentState)) os << "*"; else os << " ";
+    for (int currentState : Q_states) 
+    {
+        if (currentState == q0_initialState) 
+            os << "->"; else os << "  ";
+        if (F_finalStates.count(currentState)) 
+            os << "*"; else os << " ";
 
         os << currentState << " | ";
 
-        // Tranzitie LAMBDA
+        //tranz lambda
         auto key_lambda = make_pair(currentState, lambda);
-        if (delta_transition.count(key_lambda)) {
+        if (delta_transition.count(key_lambda)) 
             os << setToString(delta_transition.at(key_lambda)) << " | ";
-        }
-        else {
+        else 
             os << "{} | ";
-        }
+        
        
-        // Tranzițiile pentru fiecare simbol din alfabet
+        // tranz pt fiecare simbol din alfabet
         for (char symbol : Sigma_alphabet) {
             auto key = make_pair(currentState, symbol);
 
-            if (delta_transition.count(key)) {
+            if (delta_transition.count(key))
                 os << setToString(delta_transition.at(key)) << " | ";
-            }
-            else {
+            else
                 os << "{} | ";
-            }
         }
         os << endl;
     }

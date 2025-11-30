@@ -59,7 +59,7 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
     for (int state : Q_states) os << state << " ";
     os << "}" << endl;
 
-    os << "Σ (Alfabet): { ";
+    os << "Sigma (Alfabet): { ";
     for (char symbol : Sigma_alphabet) os << symbol << " ";
     os << "}" << endl;
 
@@ -71,17 +71,14 @@ void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
 
     os << "---------------------------------------" << endl;
 
-    //  AFIS TABEL DE TRANZITIE
-    os << "--- Tabelul de Tranzitie (δ) ---" << endl;
+    os << "--- Tabelul de Tranzitie ---" << endl;
 
-    // Simboluri
     os << "Stare\\Simbol | ";
     for (char symbol : Sigma_alphabet) {
         os << symbol << " | ";
     }
     os << endl;
 
-    // Linie separatoare
     os << "--------------";
     for (size_t i = 0; i < Sigma_alphabet.size(); ++i) os << "----";
     os << endl;
