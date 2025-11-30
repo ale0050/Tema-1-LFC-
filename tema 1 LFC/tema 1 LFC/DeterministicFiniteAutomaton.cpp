@@ -52,7 +52,7 @@ bool DeterministicFiniteAutomaton:: verifyAutomaton() const {
 
 void DeterministicFiniteAutomaton::printAutomaton(ostream& os) const {
     os << "---------------------------------------" << endl;
-    os << " AFD: M = (Q, Σ, δ, q0, F) " << endl;
+    os << " AFD: M = (Q, Sigma, D, q0, F) " << endl;
 
     // Afis componentelor formale
     os << "Q (Stari): { ";

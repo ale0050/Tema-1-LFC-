@@ -3,12 +3,15 @@
 #include <iostream>
 #include <stack>
 #include <windows.h>
+#include <fstream>
+#include <algorithm>
 
+using namespace std;
 
-// Obține un handle pentru ieșirea standard
+// Handle pentru consola
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-// Culori standard Windows  ---> idk daca merg 
+// Culori Windows
 #define COLOR_DEFAULT 7  
 #define COLOR_BLUE 9
 #define COLOR_GREEN 10
@@ -17,189 +20,144 @@ HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #define COLOR_CYAN 11
 #define COLOR_BOLD 8
 
-using namespace std;
-
-struct Node { // --> pt syntax tree idk daca e bun 
-    char value;    // operator sau simbol
-    Node* left;    // pentru operatori binari
-    Node* right;   // pentru operatori binari
-    // pentru operatori unari se folosește doar left
+// Nod arbore sintactic
+struct Node {
+    char value;
+    Node* left;
+    Node* right;
     Node(char v, Node* l = nullptr, Node* r = nullptr)
         : value(v), left(l), right(r) {
     }
 };
 
-bool isOperand(char c)
-{
-    return isalnum((unsigned char)c);
-}
+// --- Functii utile ---
+bool isOperand(char c) { return isalnum((unsigned char)c); }
+bool isUnaryOperator(char c) { return c == '*' || c == '+' || c == '?'; }
 
-bool isUnaryOperator(char c)
-{
-    return c == '*' || c == '+' || c == '?';
-
-}
-
-string insertConcatenation(const string& regex)
-{
-    string processedRegex = "";
-    for (size_t i = 0; i < regex.length(); ++i)
-    {
-        char currentChar = regex[i];
-        processedRegex += currentChar;
-
-        if (i + 1 < regex.length())
-        {
-            char nextChar = regex[i + 1];
-            bool leftRequired = isOperand(currentChar) || currentChar == ')' || isUnaryOperator(currentChar);
-            bool rightRequired = isOperand(nextChar) || nextChar == '(';
-            if (leftRequired && rightRequired)
-                processedRegex += '.';
+// Inserare concatenare explicita
+string insertConcatenation(const string& regex) {
+    string processed = "";
+    for (size_t i = 0; i < regex.length(); ++i) {
+        char curr = regex[i];
+        processed += curr;
+        if (i + 1 < regex.length()) {
+            char next = regex[i + 1];
+            bool left = isOperand(curr) || curr == ')' || isUnaryOperator(curr);
+            bool right = isOperand(next) || next == '(';
+            if (left && right) processed += '.';
         }
     }
-    return processedRegex;
+    return processed;
 }
 
+// Setare culoare consola
 void setConsoleColor(int color) {
     SetConsoleTextAttribute(hConsole, color);
 }
 
-
-int priority(char op) { // e buna 
-    switch (op) 
-    {
-    case '*': case '+': case '?': return 3; // cele mai imp
-    case '.': return 2;                    
-    case '|': return 1;                   
+// Prioritate operatori
+int priority(char op) {
+    switch (op) {
+    case '*': case '+': case '?': return 3;
+    case '.': return 2;
+    case '|': return 1;
     default: return 0;
     }
 }
 
-
-
+// --- Transformare regex in NFA folosind Thompson ---
 NondeterministicFiniteAutomaton regexToNFA_thompson(const string& postfix) {
     stack<NondeterministicFiniteAutomaton> nfaStack;
-
     for (char c : postfix) {
-        if (isalnum((unsigned char)c)) 
+        if (isalnum((unsigned char)c))
             nfaStack.push(NondeterministicFiniteAutomaton::createBasicNFA(c));
-        else if (c == '.') 
-        {
-            
+        else if (c == '.') {
             NondeterministicFiniteAutomaton NFA2 = nfaStack.top(); nfaStack.pop();
             NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
-
             nfaStack.push(NFA1.combineConcatenation(NFA2));
         }
         else if (c == '|') {
-            // Cazul Uniune: A|B
             NondeterministicFiniteAutomaton NFA2 = nfaStack.top(); nfaStack.pop();
             NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
-
             nfaStack.push(NFA1.combineUnion(NFA2));
         }
         else if (c == '*') {
-            // Cazul Kleene Star: A*
             NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
             nfaStack.push(NFA1.combineKleeneStar());
         }
         else if (c == '+') {
-            // Cazul Plus (una sau mai multe): A+
             NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
             nfaStack.push(NFA1.combinePlus());
         }
         else if (c == '?') {
-            // Cazul Optional: A?
             NondeterministicFiniteAutomaton NFA1 = nfaStack.top(); nfaStack.pop();
             nfaStack.push(NFA1.combineOptional());
         }
-      
     }
 
-    if (nfaStack.empty()) {
-        throw std::runtime_error("Expresie regulata invalida sau goala.");
-    }
+    if (nfaStack.empty())
+        throw runtime_error("Expresie regulata invalida sau goala.");
 
-    return nfaStack.top(); // NFA-ul final
+    return nfaStack.top();
 }
 
-
-// fct pt cerinta 3
-string toPostfix(const string& regex) { // e verificata si e buna 
-        stack<char> operators;     // stiva operatorilor
-        string out;         // output postfix
-
-        for (char c : regex) {
-           // verif daca e nr sau litera
-            if (isOperand(c)) 
-                out += c;
-      
-            // ( - punem pe stivă
-            else if (c == '(') {
-                operators.push(c);
+// --- Transformare regex in postfix ---
+string toPostfix(const string& regex) {
+    stack<char> operators;
+    string out;
+    for (char c : regex) {
+        if (isOperand(c)) out += c;
+        else if (c == '(') operators.push(c);
+        else if (c == ')') {
+            while (!operators.empty() && operators.top() != '(') {
+                out += operators.top();
+                operators.pop();
             }
-            // ) - scoatem pana la (
-            else if (c == ')') {
-                while (!operators.empty() && operators.top() != '(') {
-                    out += operators.top();
-                    operators.pop();
-                }
-                if (!operators.empty() && operators.top() == '(') operators.pop(); // scoatem (
-            }
-            // daca e operator: Shunting Yard 
-            else {
-				//scoatem toti op cu prioritate mai mare\ egala 
-                while (!operators.empty() && priority(operators.top()) >= priority(c)) {
-                    out += operators.top();
-                    operators.pop();
-                }
-                operators.push(c);
-            }
+            if (!operators.empty()) operators.pop();
         }
-
-      
-        while (!operators.empty()) {
-            out += operators.top();
-            operators.pop();
+        else {
+            while (!operators.empty() && priority(operators.top()) >= priority(c)) {
+                out += operators.top();
+                operators.pop();
+            }
+            operators.push(c);
         }
-
-        return out;
     }
+    while (!operators.empty()) {
+        out += operators.top();
+        operators.pop();
+    }
+    return out;
+}
 
-DeterministicFiniteAutomaton RegexToDFA(const string& regex)
-{
+// --- Transformare regex in DFA ---
+DeterministicFiniteAutomaton RegexToDFA(const string& regex) {
     string processed_regex = insertConcatenation(regex);
-
     string postfix_r = toPostfix(processed_regex);
-
     NondeterministicFiniteAutomaton NFA = regexToNFA_thompson(postfix_r);
-
     return NFA.convertToDFA();
 }
 
-Node* buildSyntaxTree(const string& postfix) { // -> we don t know this
+// --- Construire arbore sintactic ---
+Node* buildSyntaxTree(const string& postfix) {
     stack<Node*> st;
-
     for (char c : postfix) {
-        if (isalnum(c)) {
-            st.push(new Node(c));
-        }
-        else if (c == '*' || c == '+' || c == '?') {
+        if (isalnum(c)) st.push(new Node(c));
+        else if (isUnaryOperator(c)) {
             Node* a = st.top(); st.pop();
             st.push(new Node(c, a));
         }
-        else if (c == '.' || c == '|') {
+        else { // operatori binari: . |
             Node* b = st.top(); st.pop();
             Node* a = st.top(); st.pop();
             st.push(new Node(c, a, b));
         }
     }
-
-    return st.top();
+    return st.empty() ? nullptr : st.top();
 }
 
-
-void printSyntaxTree(Node* root, string indent = "", bool last = true) { // we don t know this either 
+// --- Afisare arbore sintactic vizual corect ---
+void printSyntaxTree(Node* root, string indent = "", bool last = true) {
     if (!root) return;
 
     cout << indent;
@@ -214,47 +172,38 @@ void printSyntaxTree(Node* root, string indent = "", bool last = true) { // we d
 
     cout << root->value << "\n";
 
-    if (root->left)  printSyntaxTree(root->left, indent, root->right == nullptr);
-    if (root->right) printSyntaxTree(root->right, indent, true);
+    if (root->left || root->right) {
+        printSyntaxTree(root->left, indent, root->right == nullptr);
+        printSyntaxTree(root->right, indent, true);
+    }
 }
 
-
-
-
-
+// --- Main ---
 int main() {
-
-    //citire expresie din fisier
-    ifstream inFile("regexInput.txt");
     string regex_r;
- 
-
+    ifstream inFile("regexInput.txt");
     if (inFile.is_open()) {
         getline(inFile, regex_r);
         inFile.close();
+        regex_r.erase(remove(regex_r.begin(), regex_r.end(), '\n'), regex_r.end());
         cout << "Expresia regulata citita: " << regex_r << endl;
     }
     else {
-        cerr << "Eroare: Nu s-a putut deschide fisierul. Val implicita: " << endl;
-        regex_r = "a(a|b)*"; // Valoare implicita pentru testare
+        cout << "Fisierul nu exista, folosim valoare implicita: a+b" << endl;
+        regex_r = "a+b";
     }
+
     cout << "---------------------------------------" << endl;
 
     string processed_regex = insertConcatenation(regex_r);
     string postfix_r = toPostfix(processed_regex);
-    
-    //NondeterministicFiniteAutomaton NFA = regexToNFA_thompson(postfix_r);
-    //cout << "\n--- AFN in Consola (Rezultat Thompson) ---" << endl;
-    //NFA.printNFA(cout);
-    //DeterministicFiniteAutomaton AFD = NFA.convertToDFA();
-   
+
     DeterministicFiniteAutomaton AFD = RegexToDFA(regex_r);
-   
+
     if (!AFD.verifyAutomaton()) {
         cerr << "ATENTIE: Automat invalid!" << endl;
     }
 
-    // Meniu
     int choice;
     string word_to_check;
     setConsoleColor(COLOR_BLUE | COLOR_BOLD);
@@ -270,30 +219,20 @@ int main() {
 
         switch (choice) {
         case 1:
-            cout << "\nForma poloneza postfixata: " << toPostfix(processed_regex) << endl;
+            cout << "\nForma poloneza postfixata: " << postfix_r << endl;
             break;
-        case 2:
-        {
-            //string processed_regex = insertConcatenation(regex_r);
-            //string postfix_r = toPostfix(processed_regex);
+        case 2: {
             Node* root = buildSyntaxTree(postfix_r);
             setConsoleColor(COLOR_RED | COLOR_BOLD);
             cout << "\n--- Arbore Sintactic ---" << endl;
-
-            if (root) {
-                printSyntaxTree(root);
-            }
-            else {
-                cout << "Nu s-a putut construi arborele sintactic." << endl;
-            }
-
+            if (root) printSyntaxTree(root);
+            else cout << "Nu s-a putut construi arborele sintactic." << endl;
             setConsoleColor(COLOR_BLUE | COLOR_BOLD);
             break;
         }
         case 3: {
             cout << "\n--- AFD in Consola ---" << endl;
             AFD.printAutomaton(cout);
-
             ofstream outFile("out.txt");
             if (outFile.is_open()) {
                 AFD.printAutomaton(outFile);
@@ -308,12 +247,10 @@ int main() {
         case 4:
             cout << "Introduceti cuvantul de verificat: ";
             cin >> word_to_check;
-            if (AFD.checkWord(word_to_check)) {
+            if (AFD.checkWord(word_to_check))
                 cout << "REZULTAT: Cuvantul este ACCEPTAT de AFD." << endl;
-            }
-            else {
+            else
                 cout << "REZULTAT: Cuvantul este RESPINS de AFD." << endl;
-            }
             break;
         case 0:
             cout << "Program incheiat." << endl;
